@@ -1,4 +1,4 @@
-import { createPublicClient, http, type Hash, type Transaction } from 'viem'
+import { createPublicClient, http, type Hash } from 'viem'
 import { base } from 'viem/chains'
 
 /**
@@ -11,8 +11,10 @@ export const baseClient = createPublicClient({
 
 export interface TransactionResult {
   success: boolean
-  transaction?: Transaction
   inputData?: string
+  from?: string
+  to?: string | null
+  hash?: string
   error?: string
 }
 
@@ -37,8 +39,10 @@ export async function getTransaction(hash: string): Promise<TransactionResult> {
 
     return {
       success: true,
-      transaction,
       inputData: transaction.input,
+      from: transaction.from,
+      to: transaction.to,
+      hash: transaction.hash,
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching transaction'
