@@ -3,8 +3,11 @@
 import { useState } from 'react'
 import type { CheckResponse } from './api/check/route'
 
+type TransactionType = 'transaction' | 'userOperation'
+
 export default function Home() {
   const [hash, setHash] = useState('')
+  const [txType, setTxType] = useState<TransactionType>('transaction')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<CheckResponse | null>(null)
   const [showFullData, setShowFullData] = useState(false)
@@ -19,7 +22,7 @@ export default function Home() {
       const response = await fetch('/api/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hash: hash.trim() }),
+        body: JSON.stringify({ hash: hash.trim(), type: txType }),
       })
 
       const data: CheckResponse = await response.json()
@@ -69,12 +72,43 @@ export default function Home() {
 
         {/* Input Section */}
         <div className="space-y-4">
+          {/* Transaction Type Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Transaction Type
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTxType('transaction')}
+                className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  txType === 'transaction'
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Transaction
+              </button>
+              <button
+                type="button"
+                onClick={() => setTxType('userOperation')}
+                className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  txType === 'userOperation'
+                    ? 'bg-purple-600 border-purple-600 text-white'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                UserOperation (AA)
+              </button>
+            </div>
+          </div>
+
           <div>
             <label
               htmlFor="hash"
               className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
-              Transaction Hash
+              {txType === 'transaction' ? 'Transaction Hash' : 'UserOperation Hash'}
             </label>
             <input
               id="hash"
@@ -150,11 +184,18 @@ export default function Home() {
                         </svg>
                       </div>
                       <div>
-                        <h2 className="text-xl font-semibold text-green-800 dark:text-green-200">
-                          8021 Attributed
-                        </h2>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-xl font-semibold text-green-800 dark:text-green-200">
+                            8021 Attributed
+                          </h2>
+                          {result.isUserOperation && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full">
+                              UserOp
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-green-600 dark:text-green-400">
-                          This transaction is correctly 8021 attributed
+                          This {result.isUserOperation ? 'userOperation' : 'transaction'} is correctly 8021 attributed
                         </p>
                       </div>
                     </>
@@ -176,11 +217,18 @@ export default function Home() {
                         </svg>
                       </div>
                       <div>
-                        <h2 className="text-xl font-semibold text-red-800 dark:text-red-200">
-                          Not 8021 Attributed
-                        </h2>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-xl font-semibold text-red-800 dark:text-red-200">
+                            Not 8021 Attributed
+                          </h2>
+                          {result.isUserOperation && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full">
+                              UserOp
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-red-600 dark:text-red-400">
-                          This transaction does not have valid 8021 attribution
+                          This {result.isUserOperation ? 'userOperation' : 'transaction'} does not have valid 8021 attribution
                         </p>
                       </div>
                     </>
@@ -230,28 +278,37 @@ export default function Home() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+                    <svg
+                      className="w-6 h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-red-800 dark:text-red-200">
+                      Error
+                    </h2>
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {result.error}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-red-800 dark:text-red-200">
-                    Error
-                  </h2>
-                  <p className="text-sm text-red-600 dark:text-red-400">
-                    {result.error}
+                <div className="pt-3 border-t border-red-200 dark:border-red-800">
+                  <p className="text-sm text-red-700 dark:text-red-300">
+                    <strong>Tip:</strong> Make sure you selected the correct transaction type above.
+                    Use &quot;Transaction&quot; for regular blockchain transactions, or &quot;UserOperation (AA)&quot; 
+                    for Account Abstraction / Smart Wallet transactions.
                   </p>
                 </div>
               </div>

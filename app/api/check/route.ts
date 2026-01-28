@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTransaction } from '@/lib/blockchain'
+import { getRegularTransaction, getUserOperation } from '@/lib/blockchain'
 import { validate8021Attribution, isValidTransactionHash } from '@/lib/validator'
 
 export interface CheckResponse {
@@ -9,13 +9,16 @@ export interface CheckResponse {
   last16Bytes?: string
   expectedPattern?: string
   transactionHash?: string
+  isUserOperation?: boolean
   error?: string
 }
+
+type TransactionType = 'transaction' | 'userOperation'
 
 export async function POST(request: NextRequest): Promise<NextResponse<CheckResponse>> {
   try {
     const body = await request.json()
-    const { hash } = body
+    const { hash, type = 'transaction' } = body as { hash: string; type?: TransactionType }
 
     if (!hash) {
       return NextResponse.json(
@@ -27,17 +30,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckResp
     // Validate hash format
     if (!isValidTransactionHash(hash)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid transaction hash format. Expected 0x followed by 64 hex characters.' },
+        { success: false, error: 'Invalid hash format. Expected 0x followed by 64 hex characters.' },
         { status: 400 }
       )
     }
 
-    // Fetch transaction from Base blockchain
-    const txResult = await getTransaction(hash)
+    // Fetch based on selected type
+    const txResult = type === 'userOperation' 
+      ? await getUserOperation(hash)
+      : await getRegularTransaction(hash)
 
     if (!txResult.success || !txResult.inputData) {
+      const typeLabel = type === 'userOperation' ? 'UserOperation' : 'Transaction'
       return NextResponse.json(
-        { success: false, error: txResult.error || 'Failed to fetch transaction' },
+        { success: false, error: txResult.error || `${typeLabel} not found` },
         { status: 404 }
       )
     }
@@ -52,6 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckResp
       last16Bytes: validation.last16Bytes,
       expectedPattern: validation.expectedPattern,
       transactionHash: hash,
+      isUserOperation: type === 'userOperation',
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Internal server error'
