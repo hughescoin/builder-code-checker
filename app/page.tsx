@@ -268,11 +268,13 @@ export default function Home() {
                           {showFullData ? 'Show Less' : 'Show Full'}
                         </button>
                       </div>
-                      <code className="code-block text-xs">
-                        {showFullData
-                          ? highlightLast32Chars(result.inputData)
-                          : truncateData(result.inputData)}
-                      </code>
+                      <div className="code-block text-xs">
+                        <code>
+                          {showFullData
+                            ? highlightLast32Chars(result.inputData)
+                            : truncateData(result.inputData)}
+                        </code>
+                      </div>
                     </div>
                   )}
                 </div>
