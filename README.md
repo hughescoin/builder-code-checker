@@ -13,9 +13,46 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) and enter a transaction hash.
 
-## Example
+## API
 
+### Verify Attribution
+
+**Endpoint:** `POST /api/v1/verify`
+
+**Request:**
+```json
+{
+  "hash": "0x...",
+  "isUserOperation": false
+}
 ```
-Transaction: 0x6e864ef690b0a96b476ae2510e4f607ac7b867d8d73435367c32cd501adf87ce
-Result: 8021 Attributed ✓
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `hash` | string | Transaction or userOperation hash |
+| `isUserOperation` | boolean | Set `true` for Account Abstraction transactions |
+
+**Response:**
+```json
+{
+  "success": true,
+  "attributed": true,
+  "data": {
+    "hash": "0x...",
+    "isUserOperation": false,
+    "schemaId": 0,
+    "codes": ["baseapp"],
+    "suffix": "80218021802180218021802180218021",
+    "inputData": "0x..."
+  }
+}
 ```
+
+**Example:**
+```bash
+curl -X POST https://your-domain.com/api/v1/verify \
+  -H "Content-Type: application/json" \
+  -d '{"hash": "0x6e864ef...", "isUserOperation": false}'
+```
+
+Also supports `GET /api/v1/verify?hash=0x...&isUserOperation=false`
