@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRegularTransaction, getUserOperation } from '@/lib/blockchain'
 import { validate8021Attribution, isValidTransactionHash } from '@/lib/validator'
+import { parseAttribution } from '@/lib/attribution'
+
+export interface AttributionDetails {
+  schemaId: number
+  codes: string[]
+  codeRegistry?: {
+    address: string
+    chainId: number
+  }
+}
 
 export interface CheckResponse {
   success: boolean
@@ -10,6 +20,7 @@ export interface CheckResponse {
   expectedPattern?: string
   transactionHash?: string
   isUserOperation?: boolean
+  attribution?: AttributionDetails
   error?: string
 }
 
@@ -51,6 +62,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckResp
     // Validate 8021 attribution
     const validation = validate8021Attribution(txResult.inputData)
 
+    // Parse attribution details if valid
+    let attribution: AttributionDetails | undefined
+    if (validation.isAttributed) {
+      const parsed = parseAttribution(txResult.inputData)
+      if (parsed) {
+        attribution = {
+          schemaId: parsed.schemaId,
+          codes: parsed.codes,
+          codeRegistry: parsed.codeRegistry,
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       isAttributed: validation.isAttributed,
@@ -59,6 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CheckResp
       expectedPattern: validation.expectedPattern,
       transactionHash: hash,
       isUserOperation: type === 'userOperation',
+      attribution,
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Internal server error'

@@ -235,21 +235,84 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Details */}
-                <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Last 16 Bytes (32 hex chars)
+                {/* Attribution Details */}
+                {result.attribution && (
+                  <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      Attribution Details
                     </h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                          Schema ID
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-1 text-sm font-mono bg-gray-100 dark:bg-gray-800 rounded">
+                            {result.attribution.schemaId}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {result.attribution.schemaId === 0 ? '(Canonical Registry)' : '(Custom Registry)'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                          Builder Codes
+                        </h4>
+                        <div className="flex flex-wrap gap-1">
+                          {result.attribution.codes.map((code, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 text-sm font-mono bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded"
+                            >
+                              {code}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {result.attribution.codeRegistry && (
+                      <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                          Custom Code Registry
+                        </h4>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Chain ID:</span>
+                            <span className="text-sm font-mono">{result.attribution.codeRegistry.chainId}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Address:</span>
+                            <span className="text-xs font-mono break-all">{result.attribution.codeRegistry.address}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Technical Details */}
+                <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    Technical Details
+                  </h3>
+                  
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Last 16 Bytes (32 hex chars)
+                    </h4>
                     <div className="code-block text-sm">
                       <code>{result.last16Bytes}</code>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                       Expected Pattern
-                    </h3>
+                    </h4>
                     <div className="code-block text-sm">
                       <code>{result.expectedPattern}</code>
                     </div>
@@ -258,9 +321,9 @@ export default function Home() {
                   {result.inputData && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400">
                           Input Data
-                        </h3>
+                        </h4>
                         <button
                           onClick={() => setShowFullData(!showFullData)}
                           className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"

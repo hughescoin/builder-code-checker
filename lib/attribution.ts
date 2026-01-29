@@ -27,18 +27,18 @@ export interface ParsedAttribution {
  */
 export function parseAttribution(inputData: string): ParsedAttribution | null {
   // Ensure 0x prefix
-  const data = inputData.startsWith('0x') ? inputData : `0x${inputData}`
+  const data = (inputData.startsWith('0x') ? inputData : `0x${inputData}`) as `0x${string}`
   
   try {
     const attribution = Attribution.fromData(data)
     
-    if (!attribution) {
+    if (!attribution || attribution.id === undefined) {
       return null
     }
 
     return {
       schemaId: attribution.id,
-      codes: attribution.codes,
+      codes: [...attribution.codes],
       codeRegistry: attribution.codeRegistry ? {
         address: attribution.codeRegistry.address,
         chainId: attribution.codeRegistry.chainId,
