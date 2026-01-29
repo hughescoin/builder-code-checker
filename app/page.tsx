@@ -241,18 +241,18 @@ export default function Home() {
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Last 16 Bytes (32 hex chars)
                     </h3>
-                    <code className="code-block text-sm">
-                      {result.last16Bytes}
-                    </code>
+                    <div className="code-block text-sm">
+                      <code>{result.last16Bytes}</code>
+                    </div>
                   </div>
 
                   <div>
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Expected Pattern
                     </h3>
-                    <code className="code-block text-sm">
-                      {result.expectedPattern}
-                    </code>
+                    <div className="code-block text-sm">
+                      <code>{result.expectedPattern}</code>
+                    </div>
                   </div>
 
                   {result.inputData && (
