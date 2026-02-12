@@ -2,28 +2,50 @@
 
 import { useState } from 'react'
 import type { CheckResponse } from './api/check/route'
-import { encodeAttribution, decodeAttribution, type EncodeResult, type DecodeResult } from '@/lib/encode-decode'
+import { encodeAttribution, decodeAttribution, type EncodeResult, type DecodeResult, type SchemaType } from '@/lib/encode-decode'
 
 type TransactionType = 'transaction' | 'userOperation'
 type CodecMode = 'encode' | 'decode'
 
 export default function Home() {
-  // Transaction checker state
   const [hash, setHash] = useState('')
   const [txType, setTxType] = useState<TransactionType>('transaction')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<CheckResponse | null>(null)
   const [showFullData, setShowFullData] = useState(false)
 
-  // Encode/Decode state
   const [codecMode, setCodecMode] = useState<CodecMode>('encode')
+  const [selectedSchema, setSelectedSchema] = useState<SchemaType>(0)
   const [builderCodes, setBuilderCodes] = useState('')
+  const [appCode, setAppCode] = useState('')
+  const [walletCode, setWalletCode] = useState('')
   const [hexInput, setHexInput] = useState('')
-  const [useCustomRegistry, setUseCustomRegistry] = useState(false)
   const [registryAddress, setRegistryAddress] = useState('')
   const [registryChainId, setRegistryChainId] = useState('')
   const [encodeResult, setEncodeResult] = useState<EncodeResult | null>(null)
   const [decodeResult, setDecodeResult] = useState<DecodeResult | null>(null)
+
+  const [useAppRegistry, setUseAppRegistry] = useState(false)
+  const [appRegistryChainId, setAppRegistryChainId] = useState('')
+  const [appRegistryAddress, setAppRegistryAddress] = useState('')
+  const [useWalletRegistry, setUseWalletRegistry] = useState(false)
+  const [walletRegistryChainId, setWalletRegistryChainId] = useState('')
+  const [walletRegistryAddress, setWalletRegistryAddress] = useState('')
+  const [metadataFields, setMetadataFields] = useState<Array<{ key: string; value: string }>>([])
+
+  const addMetadataField = () => {
+    setMetadataFields([...metadataFields, { key: '', value: '' }])
+  }
+
+  const removeMetadataField = (index: number) => {
+    setMetadataFields(metadataFields.filter((_, i) => i !== index))
+  }
+
+  const updateMetadataField = (index: number, field: 'key' | 'value', newValue: string) => {
+    const updated = [...metadataFields]
+    updated[index][field] = newValue
+    setMetadataFields(updated)
+  }
 
   const checkTransaction = async () => {
     if (!hash.trim()) return
@@ -70,16 +92,44 @@ export default function Home() {
     )
   }
 
-  // Handle encode
   const handleEncode = () => {
+    if (selectedSchema === 2) {
+      const registries: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string } } = {}
+      if (useAppRegistry && appRegistryChainId && appRegistryAddress) {
+        registries.app = { chainId: appRegistryChainId, address: appRegistryAddress }
+      }
+      if (useWalletRegistry && walletRegistryChainId && walletRegistryAddress) {
+        registries.wallet = { chainId: walletRegistryChainId, address: walletRegistryAddress }
+      }
+
+      const metadata: Record<string, string> = {}
+      for (const field of metadataFields) {
+        if (field.key.trim() && field.value.trim()) {
+          metadata[field.key.trim()] = field.value.trim()
+        }
+      }
+
+      const result = encodeAttribution({
+        schemaId: 2,
+        appCode: appCode.trim() || undefined,
+        walletCode: walletCode.trim() || undefined,
+        registries: Object.keys(registries).length > 0 ? registries : undefined,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      })
+      setEncodeResult(result)
+      setDecodeResult(null)
+      return
+    }
+
     const codes = builderCodes
       .split(',')
-      .map(code => code.trim())
-      .filter(code => code.length > 0)
+      .map((code: string) => code.trim())
+      .filter((code: string) => code.length > 0)
 
     const result = encodeAttribution({
+      schemaId: selectedSchema as 0 | 1,
       codes,
-      codeRegistry: useCustomRegistry && registryAddress && registryChainId
+      codeRegistry: selectedSchema === 1 && registryAddress && registryChainId
         ? {
             address: registryAddress,
             chainId: parseInt(registryChainId, 10),
@@ -90,16 +140,29 @@ export default function Home() {
     setDecodeResult(null)
   }
 
-  // Handle decode
   const handleDecode = () => {
     const result = decodeAttribution(hexInput)
     setDecodeResult(result)
     setEncodeResult(null)
   }
 
-  // Copy to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
+  }
+
+  const isSchema2DecodeResult = (r: DecodeResult): r is { 
+    success: true; 
+    schemaId: 2; 
+    appCode?: string; 
+    walletCode?: string;
+    registries?: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string } };
+    metadata?: Record<string, unknown>;
+  } => {
+    return r.success && r.schemaId === 2
+  }
+
+  const isSchema01DecodeResult = (r: DecodeResult): r is { success: true; schemaId: 0 | 1; codes?: string[]; codeRegistry?: { address: string; chainId: number } } => {
+    return r.success && (r.schemaId === 0 || r.schemaId === 1)
   }
 
   return (
@@ -476,40 +539,208 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Encode Mode */}
           {codecMode === 'encode' && (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Builder Codes (comma-separated)
+                  Schema
                 </label>
-                <input
-                  type="text"
-                  value={builderCodes}
-                  onChange={(e) => setBuilderCodes(e.target.value)}
-                  placeholder="baseapp, morpho"
+                <select
+                  value={selectedSchema}
+                  onChange={(e) => {
+                    setSelectedSchema(parseInt(e.target.value) as SchemaType)
+                    setEncodeResult(null)
+                  }}
                   className="hash-input"
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Enter one or more builder codes separated by commas
-                </p>
+                >
+                  <option value={0}>Schema 0: Canonical Registry</option>
+                  <option value={1}>Schema 1: Custom Registry</option>
+                  <option value={2}>Schema 2: CBOR Data</option>
+                </select>
               </div>
 
-              <div>
-                <label className="flex items-center gap-2 cursor-pointer">
+              {selectedSchema !== 2 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Builder Codes (comma-separated)
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={useCustomRegistry}
-                    onChange={(e) => setUseCustomRegistry(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
+                    type="text"
+                    value={builderCodes}
+                    onChange={(e) => setBuilderCodes(e.target.value)}
+                    placeholder="baseapp, morpho"
+                    className="hash-input"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Use Custom Registry (Schema 1)
-                  </span>
-                </label>
-              </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Enter one or more builder codes separated by commas
+                  </p>
+                </div>
+              )}
 
-              {useCustomRegistry && (
+              {selectedSchema === 2 && (
+                <div className="space-y-6">
+                  <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <label className="block text-sm font-semibold text-blue-800 dark:text-blue-200">
+                      Application (optional)
+                    </label>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Application Code
+                      </label>
+                      <input
+                        type="text"
+                        value={appCode}
+                        onChange={(e) => setAppCode(e.target.value)}
+                        placeholder="baseapp"
+                        className="hash-input"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={useAppRegistry}
+                        onChange={(e) => setUseAppRegistry(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Use custom registry for app
+                      </span>
+                    </label>
+                    {useAppRegistry && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Chain ID (hex)
+                          </label>
+                          <input
+                            type="text"
+                            value={appRegistryChainId}
+                            onChange={(e) => setAppRegistryChainId(e.target.value)}
+                            placeholder="0x2105"
+                            className="hash-input text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Registry Address
+                          </label>
+                          <input
+                            type="text"
+                            value={appRegistryAddress}
+                            onChange={(e) => setAppRegistryAddress(e.target.value)}
+                            placeholder="0x..."
+                            className="hash-input text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <label className="block text-sm font-semibold text-purple-800 dark:text-purple-200">
+                      Wallet (optional)
+                    </label>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Wallet Code
+                      </label>
+                      <input
+                        type="text"
+                        value={walletCode}
+                        onChange={(e) => setWalletCode(e.target.value)}
+                        placeholder="privy"
+                        className="hash-input"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={useWalletRegistry}
+                        onChange={(e) => setUseWalletRegistry(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Use custom registry for wallet
+                      </span>
+                    </label>
+                    {useWalletRegistry && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Chain ID (hex)
+                          </label>
+                          <input
+                            type="text"
+                            value={walletRegistryChainId}
+                            onChange={(e) => setWalletRegistryChainId(e.target.value)}
+                            placeholder="0x2105"
+                            className="hash-input text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Registry Address
+                          </label>
+                          <input
+                            type="text"
+                            value={walletRegistryAddress}
+                            onChange={(e) => setWalletRegistryAddress(e.target.value)}
+                            placeholder="0x..."
+                            className="hash-input text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        Metadata (optional)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={addMetadataField}
+                        className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                      >
+                        + Add Field
+                      </button>
+                    </div>
+                    {metadataFields.length === 0 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Add custom key-value pairs like utm_campaign, source, etc.
+                      </p>
+                    )}
+                    {metadataFields.map((field, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={field.key}
+                          onChange={(e) => updateMetadataField(index, 'key', e.target.value)}
+                          placeholder="key"
+                          className="hash-input text-sm flex-1"
+                        />
+                        <input
+                          type="text"
+                          value={field.value}
+                          onChange={(e) => updateMetadataField(index, 'value', e.target.value)}
+                          placeholder="value"
+                          className="hash-input text-sm flex-1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeMetadataField(index)}
+                          className="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedSchema === 1 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -540,7 +771,7 @@ export default function Home() {
 
               <button
                 onClick={handleEncode}
-                disabled={!builderCodes.trim()}
+                disabled={selectedSchema === 2 ? !appCode.trim() && !walletCode.trim() : !builderCodes.trim()}
                 className="btn-primary"
               >
                 Encode Attribution
@@ -615,25 +846,51 @@ export default function Home() {
                               {decodeResult.schemaId}
                             </span>
                             <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {decodeResult.schemaId === 0 ? '(Canonical)' : '(Custom Registry)'}
+                              {decodeResult.schemaId === 0 ? '(Canonical)' : decodeResult.schemaId === 1 ? '(Custom Registry)' : '(CBOR Data)'}
                             </span>
                           </div>
                         </div>
-                        <div>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">Builder Codes</span>
-                          <div className="flex flex-wrap gap-1">
-                            {decodeResult.codes?.map((code, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 text-sm font-mono bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded"
-                              >
-                                {code}
-                              </span>
-                            ))}
+                        {isSchema01DecodeResult(decodeResult) && (
+                          <div>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Builder Codes</span>
+                            <div className="flex flex-wrap gap-1">
+                              {decodeResult.codes?.map((code: string, index: number) => (
+                                <span
+                                  key={index}
+                                  className="px-2 py-1 text-sm font-mono bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded"
+                                >
+                                  {code}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
+                        {isSchema2DecodeResult(decodeResult) && (
+                          <>
+                            {decodeResult.appCode && (
+                              <div>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Application Code</span>
+                                <div className="flex flex-wrap gap-1">
+                                  <span className="px-2 py-1 text-sm font-mono bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                                    {decodeResult.appCode}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            {decodeResult.walletCode && (
+                              <div>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Wallet Code</span>
+                                <div className="flex flex-wrap gap-1">
+                                  <span className="px-2 py-1 text-sm font-mono bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded">
+                                    {decodeResult.walletCode}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
-                      {decodeResult.codeRegistry && (
+                      {isSchema01DecodeResult(decodeResult) && decodeResult.codeRegistry && (
                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                           <span className="text-xs text-gray-500 dark:text-gray-400">Custom Registry</span>
                           <div className="mt-1 space-y-1 text-sm">
@@ -645,6 +902,53 @@ export default function Home() {
                               <span className="text-gray-500 dark:text-gray-400">Address: </span>
                               <span className="font-mono text-xs break-all">{decodeResult.codeRegistry.address}</span>
                             </div>
+                          </div>
+                        </div>
+                      )}
+                      {isSchema2DecodeResult(decodeResult) && decodeResult.registries && (
+                        <div className="space-y-2">
+                          {decodeResult.registries.app && (
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <span className="text-xs font-medium text-blue-800 dark:text-blue-200">App Custom Registry</span>
+                              <div className="mt-1 space-y-1 text-sm">
+                                <div>
+                                  <span className="text-gray-500 dark:text-gray-400">Chain ID: </span>
+                                  <span className="font-mono">{decodeResult.registries.app.chainId}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 dark:text-gray-400">Address: </span>
+                                  <span className="font-mono text-xs break-all">{decodeResult.registries.app.address}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {decodeResult.registries.wallet && (
+                            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                              <span className="text-xs font-medium text-purple-800 dark:text-purple-200">Wallet Custom Registry</span>
+                              <div className="mt-1 space-y-1 text-sm">
+                                <div>
+                                  <span className="text-gray-500 dark:text-gray-400">Chain ID: </span>
+                                  <span className="font-mono">{decodeResult.registries.wallet.chainId}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 dark:text-gray-400">Address: </span>
+                                  <span className="font-mono text-xs break-all">{decodeResult.registries.wallet.address}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {isSchema2DecodeResult(decodeResult) && decodeResult.metadata && Object.keys(decodeResult.metadata).length > 0 && (
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Metadata</span>
+                          <div className="mt-2 space-y-1">
+                            {Object.entries(decodeResult.metadata).map(([key, value]) => (
+                              <div key={key} className="flex gap-2 text-sm">
+                                <span className="font-mono text-gray-600 dark:text-gray-400">{key}:</span>
+                                <span className="font-mono text-gray-800 dark:text-gray-200">{String(value)}</span>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
