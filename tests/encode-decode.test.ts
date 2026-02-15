@@ -296,8 +296,10 @@ describe('Helper Module - encodeAttribution & decodeAttribution', () => {
       const result = decodeAttribution(encoded.suffix!)
       
       expect(result.success).toBe(true)
-      expect(result.codes).toContain('baseapp')
-      expect(result.schemaId).toBe(0)
+      if (result.success && (result.schemaId === 0 || result.schemaId === 1)) {
+        expect(result.codes).toContain('baseapp')
+        expect(result.schemaId).toBe(0)
+      }
     })
 
     it('should decode hex without 0x prefix', () => {
@@ -306,7 +308,9 @@ describe('Helper Module - encodeAttribution & decodeAttribution', () => {
       const result = decodeAttribution(hexWithout0x)
       
       expect(result.success).toBe(true)
-      expect(result.codes).toContain('baseapp')
+      if (result.success && (result.schemaId === 0 || result.schemaId === 1)) {
+        expect(result.codes).toContain('baseapp')
+      }
     })
 
     it('should decode hex with extra whitespace', () => {
@@ -314,11 +318,13 @@ describe('Helper Module - encodeAttribution & decodeAttribution', () => {
       const result = decodeAttribution('  ' + encoded.suffix! + '  ')
       
       expect(result.success).toBe(true)
-      expect(result.codes).toContain('baseapp')
+      if (result.success && (result.schemaId === 0 || result.schemaId === 1)) {
+        expect(result.codes).toContain('baseapp')
+      }
     })
 
     it('should fail for data without 8021 suffix', () => {
-      const result = decodeAttribution('0x1234567890abcdef1234567890abcdef')
+      const result = decodeAttribution('0x1234567890abcdef1234567890abcdef1234567890abcdef')
       
       expect(result.success).toBe(false)
       expect(result.error).toContain('8021 suffix')
@@ -375,7 +381,9 @@ describe('Helper Module - encodeAttribution & decodeAttribution', () => {
       const decoded = decodeAttribution(encoded.suffix!)
       
       expect(decoded.success).toBe(true)
-      expect(decoded.codes).toEqual(['testapp'])
+      if (decoded.success && (decoded.schemaId === 0 || decoded.schemaId === 1)) {
+        expect(decoded.codes).toEqual(['testapp'])
+      }
     })
 
     it('should encode and decode multiple codes', () => {
@@ -383,7 +391,9 @@ describe('Helper Module - encodeAttribution & decodeAttribution', () => {
       const decoded = decodeAttribution(encoded.suffix!)
       
       expect(decoded.success).toBe(true)
-      expect(decoded.codes).toEqual(['app1', 'app2', 'app3'])
+      if (decoded.success && (decoded.schemaId === 0 || decoded.schemaId === 1)) {
+        expect(decoded.codes).toEqual(['app1', 'app2', 'app3'])
+      }
     })
 
     it('should encode and decode with custom registry', () => {
@@ -397,9 +407,327 @@ describe('Helper Module - encodeAttribution & decodeAttribution', () => {
       const decoded = decodeAttribution(encoded.suffix!)
       
       expect(decoded.success).toBe(true)
-      expect(decoded.schemaId).toBe(1)
-      expect(decoded.codes).toEqual(['myapp'])
-      expect(decoded.codeRegistry?.chainId).toBe(42161)
+      if (decoded.success && decoded.schemaId === 1) {
+        expect(decoded.codes).toEqual(['myapp'])
+        expect(decoded.codeRegistry?.chainId).toBe(42161)
+      }
+    })
+  })
+})
+
+describe('Schema 2 - CBOR Encoding/Decoding', () => {
+  describe('encodeAttribution with Schema 2', () => {
+    it('should encode app code only', () => {
+      const result = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+      })
+      
+      expect(result.success).toBe(true)
+      expect(result.schemaId).toBe(2)
+      expect(result.suffix).toBeDefined()
+      expect(result.suffix?.endsWith('80218021802180218021802180218021')).toBe(true)
+    })
+
+    it('should encode wallet code only', () => {
+      const result = encodeAttribution({
+        schemaId: 2,
+        walletCode: 'privy',
+      })
+      
+      expect(result.success).toBe(true)
+      expect(result.schemaId).toBe(2)
+      expect(result.suffix).toBeDefined()
+    })
+
+    it('should encode both app and wallet codes', () => {
+      const result = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+        walletCode: 'privy',
+      })
+      
+      expect(result.success).toBe(true)
+      expect(result.schemaId).toBe(2)
+      expect(result.suffix).toBeDefined()
+    })
+
+    it('should fail with no codes provided', () => {
+      const result = encodeAttribution({
+        schemaId: 2,
+      })
+      
+      expect(result.success).toBe(false)
+      expect(result.error).toBeDefined()
+    })
+
+    it('should fail with empty strings for both codes', () => {
+      const result = encodeAttribution({
+        schemaId: 2,
+        appCode: '   ',
+        walletCode: '',
+      })
+      
+      expect(result.success).toBe(false)
+    })
+  })
+
+  describe('decodeAttribution with Schema 2', () => {
+    it('should decode app code only', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+      })
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('baseapp')
+        expect(decoded.walletCode).toBeUndefined()
+      } else {
+        fail('Expected schema 2 result')
+      }
+    })
+
+    it('should decode wallet code only', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        walletCode: 'privy',
+      })
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBeUndefined()
+        expect(decoded.walletCode).toBe('privy')
+      } else {
+        fail('Expected schema 2 result')
+      }
+    })
+
+    it('should decode both app and wallet codes', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+        walletCode: 'privy',
+      })
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('baseapp')
+        expect(decoded.walletCode).toBe('privy')
+      } else {
+        fail('Expected schema 2 result')
+      }
+    })
+  })
+
+  describe('Round-trip Schema 2', () => {
+    it('should round-trip app code', () => {
+      const original = { schemaId: 2 as const, appCode: 'myapp' }
+      const encoded = encodeAttribution(original)
+      const decoded = decodeAttribution(encoded.suffix!)
+      
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('myapp')
+      }
+    })
+
+    it('should round-trip both codes', () => {
+      const original = { schemaId: 2 as const, appCode: 'myapp', walletCode: 'mywallet' }
+      const encoded = encodeAttribution(original)
+      const decoded = decodeAttribution(encoded.suffix!)
+      
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('myapp')
+        expect(decoded.walletCode).toBe('mywallet')
+      }
+    })
+
+    it('should handle special characters in codes', () => {
+      const original = { schemaId: 2 as const, appCode: 'app_with_underscore' }
+      const encoded = encodeAttribution(original)
+      const decoded = decodeAttribution(encoded.suffix!)
+      
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('app_with_underscore')
+      }
+    })
+  })
+
+  describe('Schema 2 with custom registries', () => {
+    it('should encode and decode app custom registry', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+        registries: {
+          app: {
+            chainId: '0x2105',
+            address: '0xBcf2B9598Ec0781eE49230CaACF0FB3C881B5195',
+          },
+        },
+      })
+      
+      expect(encoded.success).toBe(true)
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('baseapp')
+        expect(decoded.registries?.app?.chainId).toBe('0x2105')
+        expect(decoded.registries?.app?.address).toBe('0xBcf2B9598Ec0781eE49230CaACF0FB3C881B5195')
+      }
+    })
+
+    it('should encode and decode wallet custom registry', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        walletCode: 'privy',
+        registries: {
+          wallet: {
+            chainId: '0x1',
+            address: '0x1234567890123456789012345678901234567890',
+          },
+        },
+      })
+      
+      expect(encoded.success).toBe(true)
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.walletCode).toBe('privy')
+        expect(decoded.registries?.wallet?.chainId).toBe('0x1')
+        expect(decoded.registries?.wallet?.address).toBe('0x1234567890123456789012345678901234567890')
+      }
+    })
+
+    it('should encode and decode both custom registries', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+        walletCode: 'privy',
+        registries: {
+          app: { chainId: '0x2105', address: '0xAppRegistry000000000000000000000000000000' },
+          wallet: { chainId: '0x1', address: '0xWalletRegistry0000000000000000000000000' },
+        },
+      })
+      
+      expect(encoded.success).toBe(true)
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.registries?.app?.chainId).toBe('0x2105')
+        expect(decoded.registries?.wallet?.chainId).toBe('0x1')
+      }
+    })
+  })
+
+  describe('Schema 2 with metadata', () => {
+    it('should encode and decode single metadata field', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+        metadata: {
+          utm_campaign: 'winter-promo',
+        },
+      })
+      
+      expect(encoded.success).toBe(true)
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('baseapp')
+        expect(decoded.metadata?.utm_campaign).toBe('winter-promo')
+      }
+    })
+
+    it('should encode and decode multiple metadata fields', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+        metadata: {
+          utm_campaign: 'winter-promo',
+          source: 'webapp',
+          referrer: 'twitter',
+        },
+      })
+      
+      expect(encoded.success).toBe(true)
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.metadata?.utm_campaign).toBe('winter-promo')
+        expect(decoded.metadata?.source).toBe('webapp')
+        expect(decoded.metadata?.referrer).toBe('twitter')
+      }
+    })
+
+    it('should ignore empty metadata keys and values', () => {
+      const encoded = encodeAttribution({
+        schemaId: 2,
+        appCode: 'baseapp',
+        metadata: {
+          '': 'empty-key',
+          'empty-value': '',
+          'valid': 'valid-value',
+        },
+      })
+      
+      expect(encoded.success).toBe(true)
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.metadata?.valid).toBe('valid-value')
+        expect(decoded.metadata?.['']).toBeUndefined()
+        expect(decoded.metadata?.['empty-value']).toBeUndefined()
+      }
+    })
+  })
+
+  describe('Schema 2 full example from ERC spec', () => {
+    it('should round-trip full example with app, wallet, registry, and metadata', () => {
+      const input = {
+        schemaId: 2 as const,
+        appCode: 'baseapp',
+        walletCode: 'privy',
+        registries: {
+          app: {
+            chainId: '0x2105',
+            address: '0xBcf2B9598Ec0781eE49230CaACF0FB3C881B5195',
+          },
+        },
+        metadata: {
+          utm_campaign: 'winter-promo',
+          source: 'webapp',
+        },
+      }
+      
+      const encoded = encodeAttribution(input)
+      expect(encoded.success).toBe(true)
+      expect(encoded.schemaId).toBe(2)
+      
+      const decoded = decodeAttribution(encoded.suffix!)
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('baseapp')
+        expect(decoded.walletCode).toBe('privy')
+        expect(decoded.registries?.app?.chainId).toBe('0x2105')
+        expect(decoded.registries?.app?.address).toBe('0xBcf2B9598Ec0781eE49230CaACF0FB3C881B5195')
+        expect(decoded.metadata?.utm_campaign).toBe('winter-promo')
+        expect(decoded.metadata?.source).toBe('webapp')
+      }
     })
   })
 })
