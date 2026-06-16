@@ -28,9 +28,11 @@ export interface EncodeInputSchema2 {
   schemaId: 2
   appCode?: string
   walletCode?: string
+  serviceCode?: string
   registries?: {
     app?: Schema2Registry
     wallet?: Schema2Registry
+    service?: Schema2Registry
   }
   metadata?: Record<string, string>
 }
@@ -73,9 +75,11 @@ export interface DecodeResultSchema2 extends DecodeResultBase {
   schemaId?: 2
   appCode?: string
   walletCode?: string
+  serviceCodes?: string[]
   registries?: {
     app?: Schema2Registry
     wallet?: Schema2Registry
+    service?: Schema2Registry
   }
   metadata?: Record<string, unknown>
 }
@@ -110,9 +114,11 @@ function hasCodesProperty(input: EncodeInput): input is EncodeInputSchema01 | { 
 interface Schema2CborMap {
   a?: string
   w?: string
+  s?: string[]
   r?: {
     a?: { c: string; a: string }
     w?: { c: string; a: string }
+    s?: { c: string; a: string }
   }
   m?: Record<string, string>
 }
@@ -126,9 +132,12 @@ function encodeSchema2(input: EncodeInputSchema2): string {
   if (input.walletCode?.trim()) {
     cborMap.w = input.walletCode.trim()
   }
-  
-  if (!cborMap.a && !cborMap.w) {
-    throw new Error('At least one code (app or wallet) is required')
+  if (input.serviceCode?.trim()) {
+    cborMap.s = [input.serviceCode.trim()]
+  }
+
+  if (!cborMap.a && !cborMap.w && !cborMap.s?.length) {
+    throw new Error('At least one code (app, wallet, or service) is required')
   }
   
   if (input.registries?.app || input.registries?.wallet) {
@@ -143,6 +152,12 @@ function encodeSchema2(input: EncodeInputSchema2): string {
       cborMap.r.w = {
         c: input.registries.wallet.chainId,
         a: input.registries.wallet.address,
+      }
+    }
+    if (input.registries.service?.chainId && input.registries.service?.address) {
+      cborMap.r.s = {
+        c: input.registries.service.chainId,
+        a: input.registries.service.address,
       }
     }
   }
@@ -214,9 +229,11 @@ export function encodeAttribution(input: EncodeInput): EncodeResult {
 interface DecodedSchema2Cbor {
   a?: string
   w?: string
+  s?: string[]
   r?: {
     a?: { c: string; a: string }
     w?: { c: string; a: string }
+    s?: { c: string; a: string }
   }
   m?: Record<string, unknown>
 }
@@ -248,6 +265,7 @@ function decodeSchema2(hexData: string): DecodeResultSchema2 {
     schemaId: 2,
     appCode: typeof decoded.a === 'string' ? decoded.a : undefined,
     walletCode: typeof decoded.w === 'string' ? decoded.w : undefined,
+    serviceCodes: Array.isArray(decoded.s) && decoded.s.length > 0 ? decoded.s : undefined,
   }
   
   if (decoded.r) {
@@ -262,6 +280,12 @@ function decodeSchema2(hexData: string): DecodeResultSchema2 {
       result.registries.wallet = {
         chainId: decoded.r.w.c,
         address: decoded.r.w.a,
+      }
+    }
+    if (decoded.r.s?.c && decoded.r.s?.a) {
+      result.registries.service = {
+        chainId: decoded.r.s.c,
+        address: decoded.r.s.a,
       }
     }
   }

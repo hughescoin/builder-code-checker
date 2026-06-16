@@ -554,10 +554,34 @@ describe('Schema 2 - CBOR Encoding/Decoding', () => {
       const original = { schemaId: 2 as const, appCode: 'app_with_underscore' }
       const encoded = encodeAttribution(original)
       const decoded = decodeAttribution(encoded.suffix!)
-      
+
       expect(decoded.success).toBe(true)
       if (decoded.success && decoded.schemaId === 2) {
         expect(decoded.appCode).toBe('app_with_underscore')
+      }
+    })
+
+    it('should round-trip service code', () => {
+      const original = { schemaId: 2 as const, serviceCode: 'my-service' }
+      const encoded = encodeAttribution(original)
+      const decoded = decodeAttribution(encoded.suffix!)
+
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.serviceCode).toBe('my-service')
+      }
+    })
+
+    it('should round-trip all three codes', () => {
+      const original = { schemaId: 2 as const, appCode: 'myapp', walletCode: 'mywallet', serviceCode: 'myservice' }
+      const encoded = encodeAttribution(original)
+      const decoded = decodeAttribution(encoded.suffix!)
+
+      expect(decoded.success).toBe(true)
+      if (decoded.success && decoded.schemaId === 2) {
+        expect(decoded.appCode).toBe('myapp')
+        expect(decoded.walletCode).toBe('mywallet')
+        expect(decoded.serviceCode).toBe('myservice')
       }
     })
   })

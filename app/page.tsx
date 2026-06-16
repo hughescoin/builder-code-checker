@@ -19,6 +19,7 @@ export default function Home() {
   const [builderCodes, setBuilderCodes] = useState('')
   const [appCode, setAppCode] = useState('')
   const [walletCode, setWalletCode] = useState('')
+  const [serviceCode, setServiceCode] = useState('')
   const [hexInput, setHexInput] = useState('')
   const [registryAddress, setRegistryAddress] = useState('')
   const [registryChainId, setRegistryChainId] = useState('')
@@ -31,6 +32,9 @@ export default function Home() {
   const [useWalletRegistry, setUseWalletRegistry] = useState(false)
   const [walletRegistryChainId, setWalletRegistryChainId] = useState('')
   const [walletRegistryAddress, setWalletRegistryAddress] = useState('')
+  const [useServiceRegistry, setUseServiceRegistry] = useState(false)
+  const [serviceRegistryChainId, setServiceRegistryChainId] = useState('')
+  const [serviceRegistryAddress, setServiceRegistryAddress] = useState('')
   const [metadataFields, setMetadataFields] = useState<Array<{ key: string; value: string }>>([])
 
   const addMetadataField = () => {
@@ -94,12 +98,15 @@ export default function Home() {
 
   const handleEncode = () => {
     if (selectedSchema === 2) {
-      const registries: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string } } = {}
+      const registries: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string }; service?: { chainId: string; address: string } } = {}
       if (useAppRegistry && appRegistryChainId && appRegistryAddress) {
         registries.app = { chainId: appRegistryChainId, address: appRegistryAddress }
       }
       if (useWalletRegistry && walletRegistryChainId && walletRegistryAddress) {
         registries.wallet = { chainId: walletRegistryChainId, address: walletRegistryAddress }
+      }
+      if (useServiceRegistry && serviceRegistryChainId && serviceRegistryAddress) {
+        registries.service = { chainId: serviceRegistryChainId, address: serviceRegistryAddress }
       }
 
       const metadata: Record<string, string> = {}
@@ -113,6 +120,7 @@ export default function Home() {
         schemaId: 2,
         appCode: appCode.trim() || undefined,
         walletCode: walletCode.trim() || undefined,
+        serviceCode: serviceCode.trim() || undefined,
         registries: Object.keys(registries).length > 0 ? registries : undefined,
         metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       })
@@ -150,12 +158,13 @@ export default function Home() {
     navigator.clipboard.writeText(text)
   }
 
-  const isSchema2DecodeResult = (r: DecodeResult): r is { 
-    success: true; 
-    schemaId: 2; 
-    appCode?: string; 
+  const isSchema2DecodeResult = (r: DecodeResult): r is {
+    success: true;
+    schemaId: 2;
+    appCode?: string;
     walletCode?: string;
-    registries?: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string } };
+    serviceCodes?: string[];
+    registries?: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string }; service?: { chainId: string; address: string } };
     metadata?: Record<string, unknown>;
   } => {
     return r.success && r.schemaId === 2
@@ -693,6 +702,63 @@ export default function Home() {
                     )}
                   </div>
 
+                  <div className="space-y-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <label className="block text-sm font-semibold text-green-800 dark:text-green-200">
+                      Service (optional)
+                    </label>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Service Code
+                      </label>
+                      <input
+                        type="text"
+                        value={serviceCode}
+                        onChange={(e) => setServiceCode(e.target.value)}
+                        placeholder="my-service"
+                        className="hash-input"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={useServiceRegistry}
+                        onChange={(e) => setUseServiceRegistry(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Use custom registry for service
+                      </span>
+                    </label>
+                    {useServiceRegistry && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Chain ID (hex)
+                          </label>
+                          <input
+                            type="text"
+                            value={serviceRegistryChainId}
+                            onChange={(e) => setServiceRegistryChainId(e.target.value)}
+                            placeholder="0x2105"
+                            className="hash-input text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Registry Address
+                          </label>
+                          <input
+                            type="text"
+                            value={serviceRegistryAddress}
+                            onChange={(e) => setServiceRegistryAddress(e.target.value)}
+                            placeholder="0x..."
+                            className="hash-input text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                       <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">
@@ -771,7 +837,7 @@ export default function Home() {
 
               <button
                 onClick={handleEncode}
-                disabled={selectedSchema === 2 ? !appCode.trim() && !walletCode.trim() : !builderCodes.trim()}
+                disabled={selectedSchema === 2 ? !appCode.trim() && !walletCode.trim() && !serviceCode.trim() : !builderCodes.trim()}
                 className="btn-primary"
               >
                 Encode Attribution
@@ -887,6 +953,18 @@ export default function Home() {
                                 </div>
                               </div>
                             )}
+                            {decodeResult.serviceCodes && decodeResult.serviceCodes.length > 0 && (
+                              <div>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Service Code{decodeResult.serviceCodes.length > 1 ? 's' : ''}</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {decodeResult.serviceCodes.map((code, i) => (
+                                    <span key={i} className="px-2 py-1 text-sm font-mono bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+                                      {code}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -933,6 +1011,21 @@ export default function Home() {
                                 <div>
                                   <span className="text-gray-500 dark:text-gray-400">Address: </span>
                                   <span className="font-mono text-xs break-all">{decodeResult.registries.wallet.address}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {decodeResult.registries.service && (
+                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                              <span className="text-xs font-medium text-green-800 dark:text-green-200">Service Custom Registry</span>
+                              <div className="mt-1 space-y-1 text-sm">
+                                <div>
+                                  <span className="text-gray-500 dark:text-gray-400">Chain ID: </span>
+                                  <span className="font-mono">{decodeResult.registries.service.chainId}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 dark:text-gray-400">Address: </span>
+                                  <span className="font-mono text-xs break-all">{decodeResult.registries.service.address}</span>
                                 </div>
                               </div>
                             </div>
