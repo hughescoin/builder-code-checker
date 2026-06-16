@@ -32,9 +32,6 @@ export default function Home() {
   const [useWalletRegistry, setUseWalletRegistry] = useState(false)
   const [walletRegistryChainId, setWalletRegistryChainId] = useState('')
   const [walletRegistryAddress, setWalletRegistryAddress] = useState('')
-  const [useServiceRegistry, setUseServiceRegistry] = useState(false)
-  const [serviceRegistryChainId, setServiceRegistryChainId] = useState('')
-  const [serviceRegistryAddress, setServiceRegistryAddress] = useState('')
   const [metadataFields, setMetadataFields] = useState<Array<{ key: string; value: string }>>([])
 
   const addMetadataField = () => {
@@ -98,16 +95,14 @@ export default function Home() {
 
   const handleEncode = () => {
     if (selectedSchema === 2) {
-      const registries: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string }; service?: { chainId: string; address: string } } = {}
+      const registries: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string } } = {}
       if (useAppRegistry && appRegistryChainId && appRegistryAddress) {
         registries.app = { chainId: appRegistryChainId, address: appRegistryAddress }
       }
       if (useWalletRegistry && walletRegistryChainId && walletRegistryAddress) {
         registries.wallet = { chainId: walletRegistryChainId, address: walletRegistryAddress }
       }
-      if (useServiceRegistry && serviceRegistryChainId && serviceRegistryAddress) {
-        registries.service = { chainId: serviceRegistryChainId, address: serviceRegistryAddress }
-      }
+
 
       const metadata: Record<string, string> = {}
       for (const field of metadataFields) {
@@ -718,45 +713,6 @@ export default function Home() {
                         className="hash-input"
                       />
                     </div>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={useServiceRegistry}
-                        onChange={(e) => setUseServiceRegistry(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        Use custom registry for service
-                      </span>
-                    </label>
-                    {useServiceRegistry && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                            Chain ID (hex)
-                          </label>
-                          <input
-                            type="text"
-                            value={serviceRegistryChainId}
-                            onChange={(e) => setServiceRegistryChainId(e.target.value)}
-                            placeholder="0x2105"
-                            className="hash-input text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                            Registry Address
-                          </label>
-                          <input
-                            type="text"
-                            value={serviceRegistryAddress}
-                            onChange={(e) => setServiceRegistryAddress(e.target.value)}
-                            placeholder="0x..."
-                            className="hash-input text-sm"
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
