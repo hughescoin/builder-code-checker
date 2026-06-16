@@ -19,7 +19,6 @@ export default function Home() {
   const [builderCodes, setBuilderCodes] = useState('')
   const [appCode, setAppCode] = useState('')
   const [walletCode, setWalletCode] = useState('')
-  const [serviceCode, setServiceCode] = useState('')
   const [hexInput, setHexInput] = useState('')
   const [registryAddress, setRegistryAddress] = useState('')
   const [registryChainId, setRegistryChainId] = useState('')
@@ -115,7 +114,6 @@ export default function Home() {
         schemaId: 2,
         appCode: appCode.trim() || undefined,
         walletCode: walletCode.trim() || undefined,
-        serviceCode: serviceCode.trim() || undefined,
         registries: Object.keys(registries).length > 0 ? registries : undefined,
         metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       })
@@ -697,23 +695,6 @@ export default function Home() {
                     )}
                   </div>
 
-                  <div className="space-y-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <label className="block text-sm font-semibold text-green-800 dark:text-green-200">
-                      Service (optional)
-                    </label>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Service Code
-                      </label>
-                      <input
-                        type="text"
-                        value={serviceCode}
-                        onChange={(e) => setServiceCode(e.target.value)}
-                        placeholder="my-service"
-                        className="hash-input"
-                      />
-                    </div>
-                  </div>
 
                   <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
@@ -793,7 +774,7 @@ export default function Home() {
 
               <button
                 onClick={handleEncode}
-                disabled={selectedSchema === 2 ? !appCode.trim() && !walletCode.trim() && !serviceCode.trim() : !builderCodes.trim()}
+                disabled={selectedSchema === 2 ? !appCode.trim() && !walletCode.trim() : !builderCodes.trim()}
                 className="btn-primary"
               >
                 Encode Attribution

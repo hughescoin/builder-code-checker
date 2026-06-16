@@ -28,11 +28,9 @@ export interface EncodeInputSchema2 {
   schemaId: 2
   appCode?: string
   walletCode?: string
-  serviceCode?: string
   registries?: {
     app?: Schema2Registry
     wallet?: Schema2Registry
-    service?: Schema2Registry
   }
   metadata?: Record<string, string>
 }
@@ -114,11 +112,9 @@ function hasCodesProperty(input: EncodeInput): input is EncodeInputSchema01 | { 
 interface Schema2CborMap {
   a?: string
   w?: string
-  s?: string[]
   r?: {
     a?: { c: string; a: string }
     w?: { c: string; a: string }
-    s?: { c: string; a: string }
   }
   m?: Record<string, string>
 }
@@ -132,12 +128,8 @@ function encodeSchema2(input: EncodeInputSchema2): string {
   if (input.walletCode?.trim()) {
     cborMap.w = input.walletCode.trim()
   }
-  if (input.serviceCode?.trim()) {
-    cborMap.s = [input.serviceCode.trim()]
-  }
-
-  if (!cborMap.a && !cborMap.w && !cborMap.s?.length) {
-    throw new Error('At least one code (app, wallet, or service) is required')
+  if (!cborMap.a && !cborMap.w) {
+    throw new Error('At least one code (app or wallet) is required')
   }
   
   if (input.registries?.app || input.registries?.wallet) {
@@ -152,12 +144,6 @@ function encodeSchema2(input: EncodeInputSchema2): string {
       cborMap.r.w = {
         c: input.registries.wallet.chainId,
         a: input.registries.wallet.address,
-      }
-    }
-    if (input.registries.service?.chainId && input.registries.service?.address) {
-      cborMap.r.s = {
-        c: input.registries.service.chainId,
-        a: input.registries.service.address,
       }
     }
   }
