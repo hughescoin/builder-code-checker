@@ -1,6 +1,6 @@
 import { Attribution } from 'ox/erc8021'
 import { encode as cborEncode, decode as cborDecode } from 'cbor-x'
-
+ 
 /** Schema type for encoding/decoding */
 export type SchemaType = 0 | 1 | 2
 
