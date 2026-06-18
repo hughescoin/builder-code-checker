@@ -14,7 +14,7 @@ export default function Home() {
   const [result, setResult] = useState<CheckResponse | null>(null)
   const [showFullData, setShowFullData] = useState(false)
 
-  const [codecMode, setCodecMode] = useState<CodecMode>('encode')
+  const [codecMode, setCodecMode] = useState<CodecMode>('decode')
   const [selectedSchema, setSelectedSchema] = useState<SchemaType>(0)
   const [builderCodes, setBuilderCodes] = useState('')
   const [appCode, setAppCode] = useState('')
@@ -500,6 +500,11 @@ export default function Home() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Create or decode ERC-8021 attribution suffixes for your transactions.
             </p>
+            <ol className="mt-2 ml-4 text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside space-y-0.5">
+              <li>On BaseScan, open the transaction</li>
+              <li>Click <span className="font-medium">More Details</span></li>
+              <li>Copy the hex code from <span className="font-medium">Input Data</span></li>
+            </ol>
           </div>
 
           {/* Mode Toggle */}
@@ -508,21 +513,6 @@ export default function Home() {
               Mode
             </label>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCodecMode('encode')
-                  setEncodeResult(null)
-                  setDecodeResult(null)
-                }}
-                className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                  codecMode === 'encode'
-                    ? 'bg-green-600 border-green-600 text-white'
-                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Encode
-              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -537,6 +527,21 @@ export default function Home() {
                 }`}
               >
                 Decode
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCodecMode('encode')
+                  setEncodeResult(null)
+                  setDecodeResult(null)
+                }}
+                className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  codecMode === 'encode'
+                    ? 'bg-green-600 border-green-600 text-white'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Encode
               </button>
             </div>
           </div>
