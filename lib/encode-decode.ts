@@ -1,6 +1,6 @@
 import { Attribution } from 'ox/erc8021'
 import { encode as cborEncode, decode as cborDecode } from 'cbor-x'
-
+ 
 /** Schema type for encoding/decoding */
 export type SchemaType = 0 | 1 | 2
 
@@ -73,9 +73,11 @@ export interface DecodeResultSchema2 extends DecodeResultBase {
   schemaId?: 2
   appCode?: string
   walletCode?: string
+  serviceCodes?: string[]
   registries?: {
     app?: Schema2Registry
     wallet?: Schema2Registry
+    service?: Schema2Registry
   }
   metadata?: Record<string, unknown>
 }
@@ -126,7 +128,6 @@ function encodeSchema2(input: EncodeInputSchema2): string {
   if (input.walletCode?.trim()) {
     cborMap.w = input.walletCode.trim()
   }
-  
   if (!cborMap.a && !cborMap.w) {
     throw new Error('At least one code (app or wallet) is required')
   }
@@ -214,9 +215,11 @@ export function encodeAttribution(input: EncodeInput): EncodeResult {
 interface DecodedSchema2Cbor {
   a?: string
   w?: string
+  s?: string[]
   r?: {
     a?: { c: string; a: string }
     w?: { c: string; a: string }
+    s?: { c: string; a: string }
   }
   m?: Record<string, unknown>
 }
@@ -248,6 +251,7 @@ function decodeSchema2(hexData: string): DecodeResultSchema2 {
     schemaId: 2,
     appCode: typeof decoded.a === 'string' ? decoded.a : undefined,
     walletCode: typeof decoded.w === 'string' ? decoded.w : undefined,
+    serviceCodes: Array.isArray(decoded.s) && decoded.s.length > 0 ? decoded.s : undefined,
   }
   
   if (decoded.r) {
@@ -262,6 +266,12 @@ function decodeSchema2(hexData: string): DecodeResultSchema2 {
       result.registries.wallet = {
         chainId: decoded.r.w.c,
         address: decoded.r.w.a,
+      }
+    }
+    if (decoded.r.s?.c && decoded.r.s?.a) {
+      result.registries.service = {
+        chainId: decoded.r.s.c,
+        address: decoded.r.s.a,
       }
     }
   }

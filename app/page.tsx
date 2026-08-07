@@ -14,7 +14,7 @@ export default function Home() {
   const [result, setResult] = useState<CheckResponse | null>(null)
   const [showFullData, setShowFullData] = useState(false)
 
-  const [codecMode, setCodecMode] = useState<CodecMode>('encode')
+  const [codecMode, setCodecMode] = useState<CodecMode>('decode')
   const [selectedSchema, setSelectedSchema] = useState<SchemaType>(0)
   const [builderCodes, setBuilderCodes] = useState('')
   const [appCode, setAppCode] = useState('')
@@ -102,6 +102,7 @@ export default function Home() {
         registries.wallet = { chainId: walletRegistryChainId, address: walletRegistryAddress }
       }
 
+
       const metadata: Record<string, string> = {}
       for (const field of metadataFields) {
         if (field.key.trim() && field.value.trim()) {
@@ -150,12 +151,13 @@ export default function Home() {
     navigator.clipboard.writeText(text)
   }
 
-  const isSchema2DecodeResult = (r: DecodeResult): r is { 
-    success: true; 
-    schemaId: 2; 
-    appCode?: string; 
+  const isSchema2DecodeResult = (r: DecodeResult): r is {
+    success: true;
+    schemaId: 2;
+    appCode?: string;
     walletCode?: string;
-    registries?: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string } };
+    serviceCodes?: string[];
+    registries?: { app?: { chainId: string; address: string }; wallet?: { chainId: string; address: string }; service?: { chainId: string; address: string } };
     metadata?: Record<string, unknown>;
   } => {
     return r.success && r.schemaId === 2
@@ -498,6 +500,11 @@ export default function Home() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Create or decode ERC-8021 attribution suffixes for your transactions.
             </p>
+            <ol className="mt-2 ml-4 text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside space-y-0.5">
+              <li>On BaseScan, open the transaction</li>
+              <li>Click <span className="font-medium">More Details</span></li>
+              <li>Copy the hex code from <span className="font-medium">Input Data</span></li>
+            </ol>
           </div>
 
           {/* Mode Toggle */}
@@ -506,21 +513,6 @@ export default function Home() {
               Mode
             </label>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCodecMode('encode')
-                  setEncodeResult(null)
-                  setDecodeResult(null)
-                }}
-                className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                  codecMode === 'encode'
-                    ? 'bg-green-600 border-green-600 text-white'
-                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Encode
-              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -535,6 +527,21 @@ export default function Home() {
                 }`}
               >
                 Decode
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCodecMode('encode')
+                  setEncodeResult(null)
+                  setDecodeResult(null)
+                }}
+                className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  codecMode === 'encode'
+                    ? 'bg-green-600 border-green-600 text-white'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Encode
               </button>
             </div>
           </div>
@@ -692,6 +699,7 @@ export default function Home() {
                       </div>
                     )}
                   </div>
+
 
                   <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
@@ -887,6 +895,18 @@ export default function Home() {
                                 </div>
                               </div>
                             )}
+                            {decodeResult.serviceCodes && decodeResult.serviceCodes.length > 0 && (
+                              <div>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Service Code{decodeResult.serviceCodes.length > 1 ? 's' : ''}</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {decodeResult.serviceCodes.map((code, i) => (
+                                    <span key={i} className="px-2 py-1 text-sm font-mono bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+                                      {code}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -933,6 +953,21 @@ export default function Home() {
                                 <div>
                                   <span className="text-gray-500 dark:text-gray-400">Address: </span>
                                   <span className="font-mono text-xs break-all">{decodeResult.registries.wallet.address}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {decodeResult.registries.service && (
+                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                              <span className="text-xs font-medium text-green-800 dark:text-green-200">Service Custom Registry</span>
+                              <div className="mt-1 space-y-1 text-sm">
+                                <div>
+                                  <span className="text-gray-500 dark:text-gray-400">Chain ID: </span>
+                                  <span className="font-mono">{decodeResult.registries.service.chainId}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 dark:text-gray-400">Address: </span>
+                                  <span className="font-mono text-xs break-all">{decodeResult.registries.service.address}</span>
                                 </div>
                               </div>
                             </div>
